@@ -2,12 +2,10 @@
   "version": 2,
   "builds": [
     { "src": "api/*.js", "use": "@vercel/node" },
-    { "src": "frontend/**", "use": "@vercel/static" }
+    { "src": "frontend/index.html", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/search", "dest": "/frontend/index.html" },
-    { "src": "/insert", "dest": "/frontend/insert.html" },
+    { "src": "/api/(.*)", "dest": "/api/$1.js" },
     { "src": "/", "dest": "/frontend/index.html" }
   ]
 }
