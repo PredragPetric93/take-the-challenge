@@ -6,30 +6,39 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 
 export default async function handler(req, res) {
   try {
-    const { title, content } = req.body;
-
-    if (!title || !content) {
-      return res.status(400).json({ error: "Missing title or content" });
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method not allowed, use POST" });
     }
 
-    // Generisanje embeddinga
+    const { query } = req.body;
+
+    if (!query) {
+      return res.status(400).json({ error: "Missing query" });
+    }
+
+    // Generisanje embeddinga za query
     const embeddingResponse = await openai.embeddings.create({
       model: "text-embedding-ada-002",
-      input: `${title} ${content}`
+      input: query,
     });
 
     const embedding = embeddingResponse.data[0].embedding;
 
-    // Insert u Supabase
-    const { error } = await supabase
-      .from("knowledge_base")
-      .insert([{ title, content, embedding }]);
+    // Poziv RPC funkcije u Supabase
+    const { data, error } = await supabase.rpc("match_documents", {
+      query_embedding: embedding,
+      match_threshold: 0.7,
+      match_count: 5,
+    });
 
     if (error) throw error;
 
-    res.status(200).json({ message: "Inserted successfully" });
+    return res.status(200).json({
+      query,
+      results: data,
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
+    console.error("Search error:", err);
+    return res.status(500).json({ error: err.message });
   }
 }
