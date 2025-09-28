@@ -42,9 +42,14 @@
       background: #fafafa;
     }
     .result strong {
-      font-size: 1.05em;
+      font-size: 1.1em;
       display: block;
       margin-bottom: 6px;
+    }
+    .meta {
+      font-size: 0.9em;
+      color: #444;
+      margin-bottom: 8px;
     }
     .similarity {
       font-size: 0.85em;
@@ -90,8 +95,17 @@
         data.results.forEach(r => {
           const div = document.createElement("div");
           div.className = "result";
+
+          // Formatiranje datuma ako postoji
+          let dateStr = r.date_reported ? new Date(r.date_reported).toLocaleString() : "N/A";
+
           div.innerHTML = `
             <strong>${r.title}</strong>
+            <div class="meta">
+              <b>Reporter:</b> ${r.reporter || "N/A"} <br>
+              <b>Severity:</b> ${r.severity || "N/A"} <br>
+              <b>Date:</b> ${dateStr}
+            </div>
             <p>${r.content}</p>
             <span class="similarity">Similarity: ${r.similarity.toFixed(3)}</span>
           `;
