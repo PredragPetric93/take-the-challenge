@@ -10,13 +10,24 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: "Method not allowed, use POST" });
     }
 
-    const { title, content, reporter, date, severity, steps, attachments } = req.body;
+    // 👇 Fallback parsing za slučaj da ConfiForms pošalje JSON kao string
+    let body = req.body;
+    if (typeof body === "string") {
+      try {
+        body = JSON.parse(body);
+      } catch (err) {
+        console.error("Invalid JSON string received:", body);
+        return res.status(400).json({ error: "Invalid JSON format" });
+      }
+    }
+
+    const { title, content, reporter, date, severity, steps, attachments } = body;
 
     if (!title || !content) {
       return res.status(400).json({ error: "Missing required fields: title or content" });
     }
 
-    // Generisanje embeddinga (na osnovu title + content)
+    // Generisanje embeddinga (title + content)
     const embeddingResponse = await openai.embeddings.create({
       model: "text-embedding-ada-002",
       input: `${title} ${content}`,
