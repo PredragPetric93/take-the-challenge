@@ -7,6 +7,7 @@
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/search", "dest": "/frontend/index.html" },
-    { "src": "/insert", "dest": "/frontend/insert.html" }
+    { "src": "/insert", "dest": "/frontend/insert.html" },
+    { "src": "/", "dest": "/frontend/index.html" }
   ]
 }
