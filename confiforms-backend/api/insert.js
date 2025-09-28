@@ -10,7 +10,7 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: "Method not allowed, use POST" });
     }
 
-    // 👇 Fallback parsing za slučaj da ConfiForms pošalje JSON kao string
+    // 🟢 UVEK parsiraj ručno ako je string
     let body = req.body;
     if (typeof body === "string") {
       try {
