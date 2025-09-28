@@ -10,35 +10,39 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: "Method not allowed, use POST" });
     }
 
-    const { query } = req.body;
+    const { title, content, reporter, date, severity, steps, attachments } = req.body;
 
-    if (!query) {
-      return res.status(400).json({ error: "Missing query" });
+    if (!title || !content) {
+      return res.status(400).json({ error: "Missing required fields: title or content" });
     }
 
-    // Generisanje embeddinga za query
+    // Generisanje embeddinga (na osnovu title + content)
     const embeddingResponse = await openai.embeddings.create({
       model: "text-embedding-ada-002",
-      input: query,
+      input: `${title} ${content}`,
     });
 
     const embedding = embeddingResponse.data[0].embedding;
 
-    // Poziv RPC funkcije u Supabase
-    const { data, error } = await supabase.rpc("match_documents", {
-      query_embedding: embedding,
-      match_threshold: 0.7,
-      match_count: 5,
-    });
+    // Insert u Supabase
+    const { error } = await supabase.from("knowledge_base").insert([
+      {
+        title,
+        content,
+        reporter,
+        date,
+        severity,
+        steps,
+        attachments,
+        embedding,
+      },
+    ]);
 
     if (error) throw error;
 
-    return res.status(200).json({
-      query,
-      results: data,
-    });
+    return res.status(200).json({ message: "Inserted successfully" });
   } catch (err) {
-    console.error("Search error:", err);
+    console.error("Insert error:", err);
     return res.status(500).json({ error: err.message });
   }
 }

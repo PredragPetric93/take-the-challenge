@@ -6,6 +6,10 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 
 export default async function handler(req, res) {
   try {
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method not allowed, use POST" });
+    }
+
     const { query } = req.body;
 
     if (!query) {
@@ -15,23 +19,26 @@ export default async function handler(req, res) {
     // Generisanje embeddinga za query
     const embeddingResponse = await openai.embeddings.create({
       model: "text-embedding-ada-002",
-      input: query
+      input: query,
     });
 
     const embedding = embeddingResponse.data[0].embedding;
 
-    // Poziv RPC funkcije
+    // Poziv RPC funkcije u Supabase
     const { data, error } = await supabase.rpc("match_documents", {
       query_embedding: embedding,
       match_threshold: 0.7,
-      match_count: 5
+      match_count: 5,
     });
 
     if (error) throw error;
 
-    res.status(200).json({ results: data });
+    return res.status(200).json({
+      query,
+      results: data,
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
+    console.error("Search error:", err);
+    return res.status(500).json({ error: err.message });
   }
 }
