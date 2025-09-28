@@ -10,7 +10,7 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: "Method not allowed, use POST" });
     }
 
-    // 🟢 UVEK parsiraj ručno ako je string
+    // Ako ConfiForms ili nešto drugo pošalje string, parsiramo ručno
     let body = req.body;
     if (typeof body === "string") {
       try {
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
       }
     }
 
-    const { title, content, reporter, date, severity, steps, attachments } = body;
+    const { title, content, reporter, severity, steps, attachments } = body;
 
     if (!title || !content) {
       return res.status(400).json({ error: "Missing required fields: title or content" });
@@ -35,13 +35,12 @@ export default async function handler(req, res) {
 
     const embedding = embeddingResponse.data[0].embedding;
 
-    // Insert u Supabase
+    // Insert u Supabase — BEZ "date", koristimo "date_reported" koji ima default now()
     const { error } = await supabase.from("knowledge_base").insert([
       {
         title,
         content,
         reporter,
-        date,
         severity,
         steps,
         attachments,
