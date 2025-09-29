@@ -20,13 +20,14 @@ export default async function handler(req, res) {
       }
     }
 
-    const { title, content, reporter, severity, steps, attachments } = body;
+    // Now also expect jira_url
+    const { title, content, reporter, severity, steps, attachments, jira_url } = body;
 
     if (!title || !content) {
       return res.status(400).json({ error: "Missing required fields: title or content" });
     }
 
-    // Generisanje embeddinga
+    // Generate embedding
     const embeddingResponse = await openai.embeddings.create({
       model: "text-embedding-ada-002",
       input: `${title} ${content}`,
@@ -34,7 +35,7 @@ export default async function handler(req, res) {
 
     const embedding = embeddingResponse.data[0].embedding;
 
-    // Insert u Supabase
+    // Insert into Supabase (including jira_url)
     const { error } = await supabase.from("knowledge_base").insert([
       {
         title,
@@ -43,6 +44,7 @@ export default async function handler(req, res) {
         severity,
         steps,
         attachments,
+        jira_url,
         embedding,
       },
     ]);
