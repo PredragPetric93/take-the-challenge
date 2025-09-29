@@ -15,26 +15,69 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing query" });
     }
 
-    // Generisanje embeddinga
-    const embeddingResponse = await openai.embeddings.create({
-      model: "text-embedding-ada-002",
-      input: query,
-    });
+    // 1. Keyword search (precizno)
+    const { data: keywordData, error: keywordError } = await supabase
+      .from("knowledge_base")
+      .select("*")
+      .or(`title.ilike.%${query}%,content.ilike.%${query}%`)
+      .limit(5);
 
-    const embedding = embeddingResponse.data[0].embedding;
+    if (keywordError) throw keywordError;
 
-    // RPC poziv u Supabase
-    const { data, error } = await supabase.rpc("match_documents", {
-      query_embedding: embedding,
-      match_threshold: 0.7,
-      match_count: 5,
-    });
+    let results = keywordData || [];
 
-    if (error) throw error;
+    // 2. Ako nema keyword rezultata, uradi embedding search
+    if (results.length === 0) {
+      const embeddingResponse = await openai.embeddings.create({
+        model: "text-embedding-ada-002",
+        input: query,
+      });
+
+      const embedding = embeddingResponse.data[0].embedding;
+
+      const { data: semanticData, error: semanticError } = await supabase.rpc(
+        "match_documents",
+        {
+          query_embedding: embedding,
+          match_threshold: 0.7,
+          match_count: 5,
+        }
+      );
+
+      if (semanticError) throw semanticError;
+
+      results = semanticData || [];
+    } else {
+      // Ako ima keyword rezultata, dodaj i semantičke (ali ukloni duplikate)
+      const embeddingResponse = await openai.embeddings.create({
+        model: "text-embedding-ada-002",
+        input: query,
+      });
+
+      const embedding = embeddingResponse.data[0].embedding;
+
+      const { data: semanticData, error: semanticError } = await supabase.rpc(
+        "match_documents",
+        {
+          query_embedding: embedding,
+          match_threshold: 0.7,
+          match_count: 5,
+        }
+      );
+
+      if (semanticError) throw semanticError;
+
+      const keywordIds = new Set(results.map(r => r.id));
+      const merged = [
+        ...results,
+        ...semanticData.filter(r => !keywordIds.has(r.id)),
+      ];
+      results = merged;
+    }
 
     return res.status(200).json({
       query,
-      results: data,
+      results,
     });
   } catch (err) {
     console.error("Search error:", err);
