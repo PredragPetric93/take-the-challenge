@@ -1,44 +1,47 @@
-import OpenAI from "openai";
-import { createClient } from "@supabase/supabase-js";
+async function search() {
+  const query = document.getElementById("query").value;
+  const resultsDiv = document.getElementById("results");
+  resultsDiv.innerHTML = "Searching...";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-
-export default async function handler(req, res) {
   try {
-    if (req.method !== "POST") {
-      return res.status(405).json({ error: "Method not allowed, use POST" });
-    }
-
-    const { query } = req.body;
-
-    if (!query) {
-      return res.status(400).json({ error: "Missing query" });
-    }
-
-    // Generisanje embeddinga za query
-    const embeddingResponse = await openai.embeddings.create({
-      model: "text-embedding-ada-002",
-      input: query,
+    const response = await fetch("https://take-the-challenge-fwwt.vercel.app/api/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query })
     });
 
-    const embedding = embeddingResponse.data[0].embedding;
+    const data = await response.json();
 
-    // Poziv RPC funkcije u Supabase
-    const { data, error } = await supabase.rpc("match_documents", {
-      query_embedding: embedding,
-      match_threshold: 0.7,
-      match_count: 5,
-    });
+    if (!data.results || data.results.length === 0) {
+      resultsDiv.innerHTML = "<p>No results found.</p>";
+      return;
+    }
 
-    if (error) throw error;
+    resultsDiv.innerHTML = "";
+    data.results.forEach(r => {
+      const div = document.createElement("div");
+      div.className = "result";
 
-    return res.status(200).json({
-      query,
-      results: data,
+      // Ako postoji jira_url, naslov je link
+      const titleHtml = r.jira_url
+        ? `<a href="${r.jira_url}" target="_blank" style="text-decoration:none; color:#0073e6;">
+             ${r.title}
+           </a>`
+        : r.title;
+
+      div.innerHTML = `
+        <strong>${titleHtml}</strong><br>
+        ${r.content}<br>
+        <span class="similarity">Similarity: ${r.similarity.toFixed(3)}</span><br>
+        <span class="meta">
+          Reporter: ${r.reporter || "N/A"} |
+          Severity: ${r.severity || "N/A"} |
+          Date: ${r.date_reported ? new Date(r.date_reported).toLocaleDateString() : "N/A"}
+        </span>
+      `;
+      resultsDiv.appendChild(div);
     });
   } catch (err) {
-    console.error("Search error:", err);
-    return res.status(500).json({ error: err.message });
+    resultsDiv.innerHTML = "<p style='color:red;'>Error: " + err.message + "</p>";
   }
 }

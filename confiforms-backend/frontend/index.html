@@ -46,6 +46,13 @@
       display: block;
       margin-bottom: 6px;
     }
+    .result a {
+      color: #0073e6;
+      text-decoration: none;
+    }
+    .result a:hover {
+      text-decoration: underline;
+    }
     .meta {
       font-size: 0.9em;
       color: #444;
@@ -99,8 +106,13 @@
           // Formatiranje datuma ako postoji
           let dateStr = r.date_reported ? new Date(r.date_reported).toLocaleString() : "N/A";
 
+          // Ako postoji jira_url -> title je link
+          const titleHtml = r.jira_url
+            ? `<a href="${r.jira_url}" target="_blank">${r.title}</a>`
+            : r.title;
+
           div.innerHTML = `
-            <strong>${r.title}</strong>
+            <strong>${titleHtml}</strong>
             <div class="meta">
               <b>Reporter:</b> ${r.reporter || "N/A"} <br>
               <b>Severity:</b> ${r.severity || "N/A"} <br>
