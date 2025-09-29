@@ -10,7 +10,6 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: "Method not allowed, use POST" });
     }
 
-    // Ako ConfiForms ili nešto drugo pošalje string, parsiramo ručno
     let body = req.body;
     if (typeof body === "string") {
       try {
@@ -27,7 +26,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing required fields: title or content" });
     }
 
-    // Generisanje embeddinga (title + content)
+    // Generisanje embeddinga
     const embeddingResponse = await openai.embeddings.create({
       model: "text-embedding-ada-002",
       input: `${title} ${content}`,
@@ -35,7 +34,7 @@ export default async function handler(req, res) {
 
     const embedding = embeddingResponse.data[0].embedding;
 
-    // Insert u Supabase — BEZ "date", koristimo "date_reported" koji ima default now()
+    // Insert u Supabase
     const { error } = await supabase.from("knowledge_base").insert([
       {
         title,

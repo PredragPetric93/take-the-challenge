@@ -103,10 +103,9 @@
           const div = document.createElement("div");
           div.className = "result";
 
-          // Formatiranje datuma ako postoji
           let dateStr = r.date_reported ? new Date(r.date_reported).toLocaleString() : "N/A";
 
-          // Ako postoji jira_url -> title je link
+          // Ako postoji Jira link
           const titleHtml = r.jira_url
             ? `<a href="${r.jira_url}" target="_blank">${r.title}</a>`
             : r.title;
